@@ -17,6 +17,7 @@ RANDOM_SEED = 42
 
 
 def download() -> Path:
+    import zipfile
     RAW_DIR.mkdir(exist_ok=True)
     csv_path = RAW_DIR / "RAW_recipes.csv"
     if csv_path.exists():
@@ -27,6 +28,11 @@ def download() -> Path:
         "-f", "RAW_recipes.csv",
         "-p", str(RAW_DIR), "--unzip",
     ], check=True)
+    # Kaggle CLI 2.x leaves the .zip in place; unzip it ourselves if needed.
+    zip_path = RAW_DIR / "RAW_recipes.csv.zip"
+    if not csv_path.exists() and zip_path.exists():
+        with zipfile.ZipFile(zip_path) as zf:
+            zf.extractall(RAW_DIR)
     return csv_path
 
 

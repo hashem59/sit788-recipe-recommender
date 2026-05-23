@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+artifacts/index.faiss
+artifacts/recipes_meta.parquet
+data/raw/
+.DS_Store
+*.egg-info/
+displayed-pdf.pdf

@@ -33,17 +33,21 @@ def _is_food(tag_name: str) -> bool:
 
 
 def analyze_image(image_bytes: bytes, min_confidence: float = 0.55) -> VisionResult:
-    """Run Azure AI Vision over raw image bytes; return ingredients + caption."""
+    """Run Azure AI Vision over raw image bytes; return ingredients + caption.
+
+    Note: the Caption feature is region-locked (not available in australiaeast).
+    We request only Tags and synthesize a short caption from the top-N tags.
+    """
     client = vision_client()
     result = client.analyze(
         image_data=image_bytes,
-        visual_features=[VisualFeatures.CAPTION, VisualFeatures.TAGS],
-        gender_neutral_caption=True,
+        visual_features=[VisualFeatures.TAGS],
     )
-    caption = result.caption.text if result.caption else ""
     raw_tags = [
         (t.name, t.confidence) for t in (result.tags.list if result.tags else [])
     ]
+    top = ", ".join(name for name, _ in raw_tags[:5])
+    caption = f"Image contains: {top}" if top else ""
     ingredients = sorted({
         name.lower() for name, conf in raw_tags
         if conf >= min_confidence

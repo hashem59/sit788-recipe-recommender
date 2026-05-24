@@ -9,3 +9,4 @@ data/raw/
 .DS_Store
 *.egg-info/
 displayed-pdf.pdf
+kaggle.json

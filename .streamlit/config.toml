@@ -1,0 +1,8 @@
+[client]
+# Hide the hamburger menu (Rerun / Print / Record a screencast / About / etc.)
+# and the "Deploy" button for clean screenshots.
+toolbarMode = "viewer"
+showErrorDetails = true
+
+[browser]
+gatherUsageStats = false

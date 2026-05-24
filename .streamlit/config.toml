@@ -1,8 +1,12 @@
 [client]
-# Hide the hamburger menu (Rerun / Print / Record a screencast / About / etc.)
+# Hide the hamburger menu (Rerun / Print / Record a screencast / About / Settings)
 # and the "Deploy" button for clean screenshots.
 toolbarMode = "viewer"
 showErrorDetails = true
+
+[server]
+# Auto-reload the app whenever a .py file changes on disk.
+runOnSave = true
 
 [browser]
 gatherUsageStats = false

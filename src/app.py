@@ -1,6 +1,8 @@
 """Streamlit demo for the multimodal recipe recommender.
 
 Run: streamlit run src/app.py
+
+Layout (desktop): inputs on the left, results on the right.
 """
 from __future__ import annotations
 import sys
@@ -25,60 +27,71 @@ st.set_page_config(page_title="What's in my fridge?", page_icon="🥗", layout="
 st.title("🥗 What's in my fridge?")
 st.caption("SIT788 11.2HD — Multimodal Recipe Recommender (Azure AI Vision + Speech + OpenAI)")
 
-col1, col2 = st.columns(2)
-with col1:
+left, right = st.columns([1, 1.2], gap="large")
+
+with left:
     st.subheader("1. Snap your fridge")
     image_file = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png"])
-with col2:
+    if image_file is not None:
+        st.image(image_file, caption=image_file.name, use_container_width=True)
+
     st.subheader("2. Tell me what you want")
     voice = st.audio_input("Record (or skip and type below)")
     typed = st.text_input("...or type preferences", placeholder="vegetarian, under 30 minutes")
 
-run = st.button("Recommend recipes", type="primary", use_container_width=True)
+    run = st.button("Recommend recipes", type="primary", use_container_width=True)
 
-if run:
-    if image_file is None:
-        st.error("Upload a fridge photo first.")
-        st.stop()
+with right:
+    st.subheader("Results")
 
-    with st.status("Analysing image with Azure AI Vision...", expanded=True) as status:
-        vis = analyze_image(image_file.read())
-        st.write(f"**Caption:** {vis.caption}")
-        st.write(f"**Detected ingredients:** {', '.join(vis.ingredients) or '(none above threshold)'}")
-        status.update(label="Vision done", state="complete")
-
-    if voice is not None:
-        with st.status("Transcribing voice with Azure Speech...", expanded=True) as status:
-            spoken = transcribe_wav(voice.getvalue())
-            st.write(f"**You said:** {spoken or '(no speech detected)'}")
-            status.update(label="Speech done", state="complete")
+    if not run:
+        st.info(
+            "Upload a fridge photo, optionally record or type your preferences, "
+            "then click **Recommend recipes**. Results will appear here."
+        )
     else:
-        spoken = ""
+        if image_file is None:
+            st.error("Upload a fridge photo first.")
+            st.stop()
 
-    prefs = " | ".join(p for p in (spoken, typed) if p)
+        with st.status("Analysing image with Azure AI Vision...", expanded=True) as status:
+            vis = analyze_image(image_file.getvalue())
+            st.write(f"**Caption:** {vis.caption}")
+            st.write(f"**Detected ingredients:** {', '.join(vis.ingredients) or '(none above threshold)'}")
+            status.update(label="Vision done", state="complete")
 
-    with st.status("Retrieving candidates from FAISS index...", expanded=True) as status:
-        query = f"recipe using {', '.join(vis.ingredients)}. {prefs}"
-        candidates = _retriever().search(query, k=10)
-        st.write(f"Pulled {len(candidates)} candidate recipes.")
-        status.update(label="Retrieval done", state="complete")
+        if voice is not None:
+            with st.status("Transcribing voice with Azure Speech...", expanded=True) as status:
+                spoken = transcribe_wav(voice.getvalue())
+                st.write(f"**You said:** {spoken or '(no speech detected)'}")
+                status.update(label="Speech done", state="complete")
+        else:
+            spoken = ""
 
-    with st.status("Asking GPT-5-mini to pick the best 3...", expanded=True) as status:
-        picks = recommend(vis.ingredients, prefs, candidates)
-        status.update(label="Recommendations ready", state="complete")
+        prefs = " | ".join(p for p in (spoken, typed) if p)
 
-    st.divider()
-    st.subheader("🍽️ Your three recipes")
-    by_id = {c["id"]: c for c in candidates}
-    for rec in picks:
-        full = by_id.get(rec.get("recipe_id"))
-        with st.container(border=True):
-            st.markdown(f"### {rec.get('name')}")
-            st.markdown(f"_{rec.get('why')}_")
-            if full:
-                st.markdown(f"**Time:** {full['minutes']} min  |  **Match score:** {full['score']:.2f}")
-                with st.expander("Ingredients"):
-                    st.write(", ".join(full["ingredients"]))
-                with st.expander("Steps"):
-                    for i, step in enumerate(full["steps"], 1):
-                        st.write(f"{i}. {step}")
+        with st.status("Retrieving candidates from FAISS index...", expanded=True) as status:
+            query = f"recipe using {', '.join(vis.ingredients)}. {prefs}"
+            candidates = _retriever().search(query, k=10)
+            st.write(f"Pulled {len(candidates)} candidate recipes.")
+            status.update(label="Retrieval done", state="complete")
+
+        with st.status("Asking GPT-5-mini to pick the best 3...", expanded=True) as status:
+            picks = recommend(vis.ingredients, prefs, candidates)
+            status.update(label="Recommendations ready", state="complete")
+
+        st.divider()
+        st.subheader("🍽️ Your three recipes")
+        by_id = {c["id"]: c for c in candidates}
+        for rec in picks:
+            full = by_id.get(rec.get("recipe_id"))
+            with st.container(border=True):
+                st.markdown(f"### {rec.get('name')}")
+                st.markdown(f"_{rec.get('why')}_")
+                if full:
+                    st.markdown(f"**Time:** {full['minutes']} min  |  **Match score:** {full['score']:.2f}")
+                    with st.expander("Ingredients"):
+                        st.write(", ".join(full["ingredients"]))
+                    with st.expander("Steps"):
+                        for i, step in enumerate(full["steps"], 1):
+                            st.write(f"{i}. {step}")

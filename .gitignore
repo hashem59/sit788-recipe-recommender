@@ -10,3 +10,5 @@ data/raw/
 *.egg-info/
 displayed-pdf.pdf
 kaggle.json
+docs/
+
